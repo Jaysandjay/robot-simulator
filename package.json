@@ -1,0 +1,11 @@
+{
+  "name": "claude",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm start --prefix server\" \"npm start --prefix client\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}
