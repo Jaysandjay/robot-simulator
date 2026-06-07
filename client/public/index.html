@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robot Fleet Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3148;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #f1f5f9;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+      margin-right: 6px;
+      transition: background 0.3s;
+    }
+
+    .status-dot.connected    { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+    .status-dot.disconnected { background: #ef4444; }
+
+    #banner {
+      display: none;
+      background: #7f1d1d;
+      color: #fca5a5;
+      text-align: center;
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      padding: 32px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+
+    .arena-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    #arena {
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      background: #141720;
+      display: block;
+      max-width: 100%;
+    }
+
+    .cards-section { width: 100%; }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .robot-card {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 18px;
+      border-left-width: 3px;
+    }
+
+    .robot-card.status-moving   { border-left-color: #22c55e; }
+    .robot-card.status-charging { border-left-color: #f59e0b; }
+    .robot-card.status-error    { border-left-color: #ef4444; }
+    .robot-card.status-idle     { border-left-color: #64748b; }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .robot-id {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .status-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-moving   { background: #14532d; color: #86efac; }
+    .badge-charging { background: #78350f; color: #fcd34d; }
+    .badge-error    { background: #7f1d1d; color: #fca5a5; }
+    .badge-idle     { background: #1e293b; color: #94a3b8; }
+
+    .battery-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .battery-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      width: 54px;
+      flex-shrink: 0;
+    }
+
+    .battery-track {
+      flex: 1;
+      height: 7px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .battery-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s ease, background-color 0.6s ease;
+    }
+
+    .battery-pct {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      width: 42px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+
+    .stat-label {
+      color: #64748b;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .stat-value { color: #cbd5e1; font-size: 0.82rem; }
+
+    .card-footer {
+      margin-top: 12px;
+      font-size: 0.7rem;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Robot Fleet Dashboard</h1>
+  <div class="header-right">
+    <span id="update-counter">Updates: 0</span>
+    <span>
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Connecting…</span>
+    </span>
+  </div>
+</header>
+
+<div id="banner">Disconnected from relay — reconnecting…</div>
+
+<main>
+  <div class="arena-wrapper">
+    <p class="section-label">Live Arena — 100 × 100 m</p>
+    <canvas id="arena" width="500" height="500"></canvas>
+  </div>
+
+  <div class="cards-section">
+    <p class="section-label">Robot Status</p>
+    <div class="cards-grid" id="cards-grid"></div>
+  </div>
+</main>
+
+<script>
+  const ROBOT_COLORS = ['#818cf8', '#34d399', '#f472b6', '#fb923c', '#38bdf8'];
+
+  let robots = [];
+  let updateCount = 0;
+
+  // ── Canvas ─────────────────────────────────────────────────────────────────
+  const canvas = document.getElementById('arena');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  function toCanvas(x, y) {
+    return [x / 100 * W, y / 100 * H];
+  }
+
+  function drawArena() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid lines
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const gx = i / 10 * W;
+      const gy = i / 10 * H;
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    }
+
+    robots.forEach((r, i) => {
+      const color = ROBOT_COLORS[i % ROBOT_COLORS.length];
+      const [cx, cy] = toCanvas(r.position.x, r.position.y);
+      const rad = r.heading * Math.PI / 180;
+
+      // Glow
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, 20);
+      grd.addColorStop(0, color + '35');
+      grd.addColorStop(1, 'transparent');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Heading arrow
+      const arrowEnd = 24;
+      const ax = cx + Math.cos(rad) * arrowEnd;
+      const ay = cy + Math.sin(rad) * arrowEnd;
+      ctx.strokeStyle = color + 'bb';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(ax, ay);
+      ctx.stroke();
+
+      // Arrowhead
+      const hl = 7;
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(ax - hl * Math.cos(rad - 0.45), ay - hl * Math.sin(rad - 0.45));
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(ax - hl * Math.cos(rad + 0.45), ay - hl * Math.sin(rad + 0.45));
+      ctx.stroke();
+
+      // Dot
+      ctx.fillStyle = r.status === 'error' ? '#ef4444' : color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Label
+      ctx.fillStyle = '#f1f5f9';
+      ctx.font = 'bold 10px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(r.id.replace('robot_', 'R'), cx, cy - 13);
+    });
+  }
+
+  // ── Cards ──────────────────────────────────────────────────────────────────
+  function batteryColor(pct) {
+    if (pct < 20) return '#ef4444';
+    if (pct < 50) return '#f59e0b';
+    return '#22c55e';
+  }
+
+  function renderCards() {
+    const grid = document.getElementById('cards-grid');
+
+    robots.forEach((r, i) => {
+      const color = ROBOT_COLORS[i % ROBOT_COLORS.length];
+      let card = document.getElementById('card-' + r.id);
+
+      if (!card) {
+        card = document.createElement('div');
+        card.id = 'card-' + r.id;
+        card.className = 'robot-card';
+        card.innerHTML = `
+          <div class="card-header">
+            <span class="robot-id" style="color:${color}">${r.id.replace('_', ' ').toUpperCase()}</span>
+            <span class="status-badge" id="badge-${r.id}"></span>
+          </div>
+          <div class="battery-row">
+            <span class="battery-label">Battery</span>
+            <div class="battery-track"><div class="battery-fill" id="batt-${r.id}"></div></div>
+            <span class="battery-pct" id="battpct-${r.id}"></span>
+          </div>
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-label">Position</span>
+              <span class="stat-value" id="pos-${r.id}"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Heading</span>
+              <span class="stat-value" id="hdg-${r.id}"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Speed</span>
+              <span class="stat-value" id="spd-${r.id}"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Task</span>
+              <span class="stat-value" id="tsk-${r.id}"></span>
+            </div>
+          </div>
+          <div class="card-footer" id="ft-${r.id}"></div>
+        `;
+        grid.appendChild(card);
+      }
+
+      card.className = `robot-card status-${r.status}`;
+
+      const badge = document.getElementById('badge-' + r.id);
+      badge.textContent = r.status;
+      badge.className = `status-badge badge-${r.status}`;
+
+      const fill = document.getElementById('batt-' + r.id);
+      fill.style.width = r.battery + '%';
+      fill.style.backgroundColor = batteryColor(r.battery);
+      document.getElementById('battpct-' + r.id).textContent = r.battery.toFixed(1) + '%';
+
+      document.getElementById('pos-' + r.id).textContent = `(${r.position.x}, ${r.position.y})`;
+      document.getElementById('hdg-' + r.id).textContent = r.heading + '°';
+      document.getElementById('spd-' + r.id).textContent = r.speed + ' m/s';
+      document.getElementById('tsk-' + r.id).textContent = r.task;
+      document.getElementById('ft-' + r.id).textContent = 'Updated ' + new Date().toLocaleTimeString();
+    });
+  }
+
+  // ── WebSocket ──────────────────────────────────────────────────────────────
+  const dot        = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const banner     = document.getElementById('banner');
+  const counter    = document.getElementById('update-counter');
+
+  function setConnected(ok) {
+    dot.className = 'status-dot ' + (ok ? 'connected' : 'disconnected');
+    statusText.textContent = ok ? 'Connected' : 'Disconnected';
+    banner.style.display = ok ? 'none' : 'block';
+  }
+
+  function connect() {
+    const ws = new WebSocket('ws://' + location.host);
+    ws.onopen  = () => setConnected(true);
+    ws.onclose = () => { setConnected(false); setTimeout(connect, 3000); };
+    ws.onerror = () => ws.close();
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type !== 'robot_update') return;
+        robots = msg.robots;
+        updateCount++;
+        counter.textContent = 'Updates: ' + updateCount;
+        drawArena();
+        renderCards();
+      } catch (_) {}
+    };
+  }
+
+  connect();
+</script>
+</body>
+</html>
