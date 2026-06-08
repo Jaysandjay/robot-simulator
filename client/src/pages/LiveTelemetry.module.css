@@ -1,0 +1,33 @@
+.main {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cardsSection {
+  flex: none;
+  width: fit-content;
+  overflow-y: auto;
+  padding: 24px 32px;
+  border-left: 1px solid #2d3148;
+  margin-left: auto;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: max-content;
+  gap: 16px;
+}
+
+.sectionLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin-bottom: 12px;
+}
