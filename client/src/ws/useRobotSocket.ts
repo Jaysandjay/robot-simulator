@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Robot } from '../types/robot';
 
-export function useRobotSocket() {
+export function useRobotSocket(token: string) {
   const [robots, setRobots] = useState<Robot[]>([]);
   const [connected, setConnected] = useState(false);
   const [updateCount, setUpdateCount] = useState(0);
@@ -14,7 +14,7 @@ export function useRobotSocket() {
 
     function connect() {
       if (destroyed) return;
-      ws = new WebSocket(`ws://${window.location.host}/ws`);
+      ws = new WebSocket(`ws://${window.location.host}/ws?token=${token}`);
 
       ws.onopen = () => setConnected(true);
       ws.onclose = () => {
@@ -43,7 +43,7 @@ export function useRobotSocket() {
       if (reconnectTimer !== null) clearTimeout(reconnectTimer);
       ws?.close();
     };
-  }, []);
+  }, [token]);
 
   return { robots, connected, updateCount, lastUpdated };
 }
