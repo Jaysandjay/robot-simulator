@@ -1,3 +1,4 @@
+import { useAuth } from '../auth/useAuth';
 import styles from './Header.module.css';
 
 interface Props {
@@ -6,6 +7,8 @@ interface Props {
 }
 
 export function Header({ connected, updateCount }: Props) {
+  const { logout } = useAuth();
+
   return (
     <header className={styles.header}>
       <h1 className={styles.title}>Robot Fleet Dashboard</h1>
@@ -15,6 +18,7 @@ export function Header({ connected, updateCount }: Props) {
           <span className={`${styles.dot} ${connected ? styles.connected : styles.disconnected}`} />
           {connected ? 'Connected' : 'Disconnected'}
         </span>
+        <button className={styles.logoutBtn} onClick={logout}>Logout</button>
       </div>
     </header>
   );

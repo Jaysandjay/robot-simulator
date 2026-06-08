@@ -1,3 +1,4 @@
+import { useAuth } from '../auth/useAuth';
 import { useRobotSocket } from '../ws/useRobotSocket';
 import { Header } from '../components/Header';
 import { ConnectionBanner } from '../components/ConnectionBanner';
@@ -6,7 +7,8 @@ import { RobotCard } from '../components/RobotCard';
 import styles from './LiveTelemetry.module.css';
 
 export function LiveTelemetry() {
-  const { robots, connected, updateCount, lastUpdated } = useRobotSocket();
+  const { token } = useAuth();
+  const { robots, connected, updateCount, lastUpdated } = useRobotSocket(token as string);
 
   return (
     <>

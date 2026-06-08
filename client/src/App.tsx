@@ -1,10 +1,23 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { AuthProvider } from './auth/AuthContext';
+import { ProtectedRoute } from './auth/ProtectedRoute';
+import { Login } from './pages/Login';
 import { LiveTelemetry } from './pages/LiveTelemetry';
 
 const router = createBrowserRouter([
-  { path: '/', element: <LiveTelemetry /> },
+  { path: '/login', element: <Login /> },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      { path: '/', element: <LiveTelemetry /> },
+    ],
+  },
 ]);
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
 }

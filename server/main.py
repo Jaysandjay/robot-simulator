@@ -1,11 +1,22 @@
 import asyncio
 import json
-from datetime import datetime, timezone
+import os
+from datetime import datetime, timedelta, timezone
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from jose import JWTError, jwt
+from pydantic import BaseModel
 
 from robots import RobotSimulator
+
+load_dotenv()
+
+AUTH_USERNAME = os.environ["AUTH_USERNAME"]
+AUTH_PASSWORD = os.environ["AUTH_PASSWORD"]
+JWT_SECRET = os.environ["JWT_SECRET"]
+ALGORITHM = "HS256"
 
 app = FastAPI()
 
@@ -17,6 +28,21 @@ app.add_middleware(
 )
 
 simulator = RobotSimulator(num_robots=5)
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+def create_token(subject: str) -> str:
+    exp = datetime.now(timezone.utc) + timedelta(hours=24)
+    return jwt.encode({"sub": subject, "exp": exp}, JWT_SECRET, algorithm=ALGORITHM)
+
+
+def verify_token(token: str) -> str:
+    payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+    return str(payload["sub"])
 
 
 class ConnectionManager:
@@ -70,12 +96,29 @@ async def health():
     return {"status": "ok", "robots": len(simulator.robots)}
 
 
+@app.post("/auth/login")
+async def login(req: LoginRequest):
+    if req.username != AUTH_USERNAME or req.password != AUTH_PASSWORD:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"token": create_token(req.username)}
+
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(
+    websocket: WebSocket, token: str | None = Query(default=None)
+):
+    if not token:
+        await websocket.close(code=4001)
+        return
+    try:
+        verify_token(token)
+    except JWTError:
+        await websocket.close(code=4001)
+        return
+
     await manager.connect(websocket)
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        if websocket in manager._connections:
-            manager._connections.remove(websocket)
+        manager.disconnect(websocket)
