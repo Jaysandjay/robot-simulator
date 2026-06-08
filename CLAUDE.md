@@ -4,24 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Robot Fleet Dashboard — a real-time telemetry visualization system. A Python FastAPI backend simulates 5 robots and streams state over WebSocket to a Node.js relay, which broadcasts to a browser-based Canvas dashboard.
+Robot Fleet Dashboard — a real-time telemetry visualization system. A Python FastAPI backend simulates 5 robots and streams state over WebSocket. A React (Vite) frontend connects directly to the backend WebSocket via a Vite dev-server proxy and renders a Canvas arena with status cards.
 
 ## Architecture
 
-Three-tier pipeline:
+Two-tier pipeline:
 
 ```
 [Python FastAPI backend]  ws://localhost:8000/ws
-        ↓
-[Node.js Express relay]   ws://localhost:3000
-        ↓
-[Browser Canvas frontend] http://localhost:3000
+        ↓  (proxied through Vite at /ws)
+[React + Vite frontend]   http://localhost:3000
 ```
 
 - **`server/main.py`** — FastAPI app with a `/ws` WebSocket endpoint and a broadcast loop that pushes robot state every second. CORS middleware is enabled.
 - **`server/robots.py`** — Robot simulator: physics, battery depletion, status transitions (moving/charging/error/idle), and task assignment.
-- **`client/index.js`** — Relay server. Connects upstream to `ws://localhost:8000/ws`, rebroadcasts every message to all connected browsers, auto-reconnects on disconnect.
-- **`client/public/index.html`** — Single-file frontend. Canvas arena rendering (100×100m grid, robot positions + headings) and status cards. Auto-reconnects to relay.
+- **`client/src/ws/useRobotSocket.ts`** — Custom hook that manages the WebSocket connection to `ws://<host>/ws`, auto-reconnects on disconnect, and returns live robot data.
+- **`client/src/pages/LiveTelemetry.tsx`** — Main page: composes the Header, ConnectionBanner, Arena, and RobotCard components using the socket hook.
+- **`client/src/components/Arena.tsx`** — Canvas arena rendering (100×100 m grid, robot positions + headings).
+- **`client/src/components/RobotCard.tsx`** — Per-robot status card with battery indicator and telemetry stats.
+- **`client/vite.config.ts`** — Vite config: runs on port 3000, proxies `/ws` to `ws://localhost:8000`.
 
 ### WebSocket message format
 
@@ -38,6 +39,8 @@ Three-tier pipeline:
 }
 ```
 
+Types are defined in `client/src/types/robot.ts`.
+
 ## Running the stack
 
 **First-time setup:**
@@ -52,14 +55,13 @@ npm install --prefix client
 npm run dev
 ```
 
-This uses `concurrently` to run `npm start --prefix server` (uvicorn on port 8000) and `npm start --prefix client` (Node relay on port 3000) in parallel. Open `http://localhost:3000` in a browser.
+This uses `concurrently` to run `npm start --prefix server` (uvicorn on port 8000) and `npm run dev --prefix client` (Vite dev server on port 3000) in parallel. Open `http://localhost:3000` in a browser.
 
 ## Dependencies
 
 | Layer | File | Key packages |
 |-------|------|-------------|
 | Backend | `server/requirements.txt` | fastapi, uvicorn[standard] |
-| Relay | `client/package.json` | express ^4.18.2, ws ^8.16.0 |
-| Frontend | — | Vanilla JS, Canvas API (no build step) |
+| Frontend | `client/package.json` | react ^19, react-router-dom ^7, vite ^6, typescript ^5.7 |
 
-No test runner, linter, or build tooling is configured.
+CSS is split into per-component CSS Modules (`*.module.css`). No additional test runner or linter is configured.

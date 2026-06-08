@@ -2,7 +2,7 @@
   "name": "claude",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm start --prefix server\" \"npm start --prefix client\"",
+    "dev": "concurrently \"npm start --prefix server\" \"npm run dev --prefix client\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
