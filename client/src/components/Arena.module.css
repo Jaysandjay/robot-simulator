@@ -1,0 +1,25 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  width: 100%;
+}
+
+.label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.canvas {
+  border: 1px solid #2d3148;
+  border-radius: 8px;
+  background: #141720;
+  display: block;
+  max-width: 100%;
+}
